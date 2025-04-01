@@ -1,51 +1,85 @@
 <!---
 {
-  "depends_on": [],
+  "depends_on": ["https://github.com/STEMgraph/99787eda-617a-4a68-b9a4-d60ec5c5c303"],
   "author": "Stephan Bökelmann",
-  "first_used": "2025-03-17",
-  "keywords": ["learning", "exercises", "education", "practice"]
+  "first_used": "2025-04-01",
+  "keywords": ["assembly", "NASM", "syscall", "write", "stdout", "Linux"]
 }
 --->
 
-# Learning Through Exercises
+# Writing to the Terminal with NASM
 
 ## 1) Introduction
-Learning by doing is one of the most effective methods to acquire new knowledge and skills. Rather than passively consuming information, actively engaging in problem-solving fosters deeper understanding and long-term retention. By working through structured exercises, students can grasp complex concepts in a more intuitive and applicable way. This approach is particularly beneficial in technical fields like programming, mathematics, and engineering.
 
-### 1.1) Further Readings and Other Sources
-- [The Importance of Practice in Learning](https://www.sciencedirect.com/science/article/pii/S036013151300062X)
-- "The Art of Learning" by Josh Waitzkin
-- [How to Learn Effectively: 5 Key Strategies](https://www.edutopia.org/article/5-research-backed-learning-strategies)
+After learning how to exit a program via direct syscall ([link](https://github.com/STEMgraph/99787eda-617a-4a68-b9a4-d60ec5c5c303)), the next step is to **write data to the terminal**.
+
+In high-level programming languages, printing to the terminal is usually done with all kinds of different functions involving the verb _print_. These usually call the `printf()` function – a function from the C standard library (`libc`), which is available on most every operating system today. But deep below, this call ultimately ends up invoking the Linux syscall `write` (or equivalent on other platforms).
+
+We can skip all libraries and **call `write` directly** from assembly by using the appropriate syscall number (`1`) and passing arguments in the correct registers.
+
+### The syscall interface for `write` on Linux x86_64:
+
+| Register | Purpose             |
+|----------|---------------------|
+| `rax`    | Syscall number (`1`)|
+| `rdi`    | File descriptor (`1` for stdout) |
+| `rsi`    | Pointer to the string buffer     |
+| `rdx`    | Length of the string             |
+
+Here's a minimal NASM program that prints `Hello, world!` to the terminal:
+
+```nasm
+; file: hello.asm
+section .data
+    message db "Hello, world!", 10 ; 10 is newline (\n)
+    len equ $ - message   ; location-counter $ - address of message
+
+section .text
+    global _start
+
+_start:
+    mov     rax, 1      ; syscall: write
+    mov     rdi, 1      ; file descriptor: stdout
+    mov     rsi, message ; pointer to message
+    mov     rdx, len     ; message length
+    syscall
+
+    ; exit(0)
+    mov     rax, 60     ; syscall: exit
+    xor     rdi, rdi    ; xor rdi with itself to produce a 0 
+    syscall
+```
+
+Assemble and run it.
+This will print:
+
+```
+Hello, world!
+```
+
+Without using a high-level programming-language.
 
 ## 2) Tasks
-1. **Write a Summary**: Summarize the concept of "learning by doing" in 3-5 sentences.
-2. **Example Identification**: List three examples from your own experience where learning through exercises helped you understand a topic better.
-3. **Create an Exercise**: Design a simple exercise for a topic of your choice that someone else could use to practice.
-4. **Follow an Exercise**: Find an online tutorial that includes exercises and complete at least two of them.
-5. **Modify an Existing Exercise**: Take a basic problem from a textbook or online course and modify it to make it slightly more challenging.
-6. **Pair Learning**: Explain a concept to a partner and guide them through an exercise without giving direct answers.
-7. **Review Mistakes**: Look at an exercise you've previously completed incorrectly. Identify why the mistake happened and how to prevent it in the future.
-8. **Time Challenge**: Set a timer for 10 minutes and try to solve as many simple exercises as possible on a given topic.
-9. **Self-Assessment**: Create a checklist to evaluate your own performance in completing exercises effectively.
-10. **Reflect on Progress**: Write a short paragraph on how this structured approach to exercises has influenced your learning.
 
-<details>
-  <summary>Tip for Task 5</summary>
-  Try making small adjustments first, such as increasing the difficulty slightly or adding an extra constraint.
-</details>
+1. **Change the Message**: Modify the string to print your name instead of `"Hello, world!"`.
+2. **Add Two Lines**: Print two lines by using a second `write` syscall or by adding `10` (newline) at the right place in your data.
+3. **Omit Newline**: Remove the newline and see how the output appears.
+4. **Write to stderr**: Use file descriptor `2` instead of `1`. Observe the behavior.
 
 ## 3) Questions
-1. What are the main benefits of learning through exercises compared to passive learning?
-2. How do exercises improve long-term retention?
-3. Can you think of a subject where learning through exercises might be less effective? Why?
-4. What role does feedback play in learning through exercises?
-5. How can self-designed exercises improve understanding?
-6. Why is it beneficial to review past mistakes in exercises?
-7. How does explaining a concept to someone else reinforce your own understanding?
-8. What strategies can you use to stay motivated when practicing with exercises?
-9. How can timed challenges contribute to learning efficiency?
-10. How do exercises help bridge the gap between theory and practical application?
+
+1. What does the value `10` at the end of the message represent?
+2. Why must the length of the message be provided manually in `rdx`?
+3. What happens if the length is incorrect (too short, too long)?
+4. Is it possible to write non-ASCII binary data using `write`?
+
+<details>
+  <summary>Syscall Reference</summary>
+
+  Full Linux syscall list with register conventions:  
+  https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
+</details>
 
 ## 4) Advice
-Practice consistently and seek out diverse exercises that challenge different aspects of a topic. Combine exercises with reflection and feedback to maximize your learning efficiency. Don't hesitate to adapt exercises to fit your own needs and ensure that you're actively engaging with the material, rather than just going through the motions.
 
+Working without the C runtime helps build a concrete understanding of how programs interact with the operating system. By writing directly to stdout using the `write` syscall, you're learning how higher-level abstractions like `printf` are built. Always remember: You control the bytes — and the CPU just obeys.
