@@ -1,6 +1,7 @@
 <!---
 {
   "id": "116c995e-c4b7-40f5-b84f-068474bbb87c",
+  "teaches": "Writing to the Terminal with NASM",
   "depends_on": ["99787eda-617a-4a68-b9a4-d60ec5c5c303"],
   "author": "Stephan Bökelmann",
   "first_used": "2025-04-01",
